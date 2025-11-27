@@ -1,0 +1,60 @@
+[project]
+name = "nonebot-plugin-hltv"
+version = "3.0.0"
+description = "CS2/CSGO HLTV信息查询插件，提供比赛数据、战队信息、选手数据查询"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "KawakazeNotFound", email = "not-found@example.com" }
+]
+keywords = ["nonebot", "plugin", "cs2", "csgo", "hltv", "esports", "gaming"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "nonebot2>=2.0.0",
+    "nonebot-adapter-onebot>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/KawakazeNotFound/nonebot-plugin-hltv"
+Repository = "https://github.com/KawakazeNotFound/nonebot-plugin-hltv.git"
+Issues = "https://github.com/KawakazeNotFound/nonebot-plugin-hltv/issues"
+Documentation = "https://github.com/KawakazeNotFound/nonebot-plugin-hltv#readme"
+
+[tool.setuptools]
+packages = ["nonebot_plugin_hltv"]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.mypy]
+python_version = "3.8"

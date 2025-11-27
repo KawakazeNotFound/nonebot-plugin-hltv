@@ -1,0 +1,67 @@
+<!-- Nonebot2 Plugin Manifest -->
+<!--
+此文件用于在 Nonebot2 插件仓库中注册本插件
+-->
+<manifest>
+  <!-- 插件元数据 -->
+  <metadata>
+    <!-- 插件内部名称 -->
+    <name>nonebot-plugin-hltv</name>
+    <!-- 插件显示名称 -->
+    <displayName>CS2/CSGO HLTV 信息查询</displayName>
+    <!-- 版本号 -->
+    <version>3.0.0</version>
+    <!-- 描述 -->
+    <description>提供CS2/CSGO比赛数据、战队信息、选手数据查询功能。受限时返回官方渠道引导，不提供虚假数据。</description>
+    
+    <!-- 作者信息 -->
+    <author>
+      <name>KawakazeNotFound</name>
+      <email>not-found@example.com</email>
+      <url>https://github.com/KawakazeNotFound</url>
+    </author>
+    
+    <!-- 许可证 -->
+    <license>GPL-v3.0-or-later</license>
+    
+    <!-- 项目主页 -->
+    <homepage>https://github.com/KawakazeNotFound/nonebot-plugin-hltv</homepage>
+    
+    <!-- 仓库 -->
+    <repository>
+      <url>https://github.com/KawakazeNotFound/nonebot-plugin-hltv.git</url>
+      <type>git</type>
+    </repository>
+    
+    <!-- 关键词 -->
+    <keywords>
+      <keyword>nonebot</keyword>
+      <keyword>plugin</keyword>
+      <keyword>cs2</keyword>
+      <keyword>csgo</keyword>
+      <keyword>hltv</keyword>
+      <keyword>esports</keyword>
+    </keywords>
+    
+    <!-- 分类 -->
+    <categories>
+      <category>Gaming</category>
+      <category>Information</category>
+      <category>Sports</category>
+    </categories>
+  </metadata>
+  
+  <!-- 依赖配置 -->
+  <dependencies>
+    <dependency name="nonebot2" minVersion="2.0.0" />
+    <dependency name="nonebot-adapter-onebot" minVersion="2.0.0" />
+  </dependencies>
+  
+  <!-- 支持的NoneBot版本 -->
+  <supportedVersions>
+    <version min="2.0.0" />
+  </supportedVersions>
+  
+  <!-- Python版本要求 -->
+  <pythonVersion min="3.8" />
+</manifest>
