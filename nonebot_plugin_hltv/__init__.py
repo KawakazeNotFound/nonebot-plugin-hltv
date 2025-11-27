@@ -4,6 +4,7 @@
 from nonebot.plugin import PluginMetadata
 
 from .config import ConfigModel
+from . import matcher  # 导入 matcher 以注册命令
 
 __plugin_meta__ = PluginMetadata(
     name="CS2/CSGO HLTV 信息查询",

@@ -6,7 +6,7 @@ import re
 from typing import Optional
 
 from nonebot import on_command, on_message
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent, Message
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, ArgPlainText
 from nonebot.rule import to_me, Rule
@@ -59,7 +59,7 @@ async def handle_cs2_matches(bot: Bot, event: MessageEvent, matcher: Matcher):
                 time_text = match.get("time", "TBD")
                 bo_type = match.get("bo_type", "bo3")
 
-                msg += f"{i}. ⏰ {team1} vs {team2}\n"
+                msg += f"{i}. {team1} vs {team2}\n"
                 msg += f"   时间: {time_text} | {bo_type.upper()}\n"
                 msg += f"   赛事: {match_event}\n"
         else:
@@ -72,7 +72,7 @@ async def handle_cs2_matches(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 @matcher_cs2_team.handle()
 async def handle_cs2_team(
-    bot: Bot, event: MessageEvent, matcher: Matcher, args: str = CommandArg()
+    bot: Bot, event: MessageEvent, matcher: Matcher, args: Message = CommandArg()
 ):
     team_name = args.extract_plain_text().strip()
 
@@ -148,7 +148,7 @@ async def handle_cs2_ranking(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 @matcher_cs2_player.handle()
 async def handle_cs2_player(
-    bot: Bot, event: MessageEvent, matcher: Matcher, args: str = CommandArg()
+    bot: Bot, event: MessageEvent, matcher: Matcher, args: Message = CommandArg()
 ):
     player_name = args.extract_plain_text().strip()
 
