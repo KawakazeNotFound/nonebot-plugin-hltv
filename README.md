@@ -71,23 +71,23 @@ _✨ CS2/CSGO HLTV 信息查询插件 ✨_
 
 - `nonebot2` >= 2.0.0
 - `nonebot-adapter-onebot` >= 2.0.0
-- `cloudscraper` >= 1.2.71
-- `beautifulsoup4` >= 4.12.0
 - `aiohttp` >= 3.8.0
 
 ## ⚙️ 配置
 
 在 nonebot2 项目的 `.env` 文件中添加以下配置（均为可选）：
 
-### API Server 配置（推荐）
+### API Server 配置
 
-如果你的服务器 IP 被 HLTV 屏蔽（返回 403 错误），可以部署 API Server 来解决：
+插件默认使用内置的 Cloudflare Workers API 代理，无需额外配置即可使用。
+
+如果你想使用自己部署的 API Server：
 
 | 配置项 | 默认值 | 说明 |
 |:------|:------:|:-----|
-| `hltv_api_url` | `""` | API Server 地址，如 `https://your-app.vercel.app` |
+| `hltv_api_url` | 内置API | 自定义 API Server 地址 |
 
-> 💡 **提示**: 如果不配置 `hltv_api_url`，插件会直接访问 HLTV。如果遇到 403 错误，请参考下方的 [API Server 部署](#-api-server-部署) 章节。
+> 💡 **提示**: 插件开箱即用，无需任何配置。如需自建 API Server，请参考下方的 [API Server 部署](#-api-server-部署) 章节。
 
 ### 缓存配置
 
