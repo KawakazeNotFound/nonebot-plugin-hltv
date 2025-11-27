@@ -5,31 +5,19 @@ import logging
 import re
 from typing import Optional
 
-from nonebot import on_command, on_message
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent, Message
+from nonebot import on_command
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message
 from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, ArgPlainText
-from nonebot.rule import to_me, Rule
-from nonebot.typing import T_State
+from nonebot.params import CommandArg
 
+from .config import get_config
 from .real_client import HLTVClient
-from .config import ConfigModel
 
 logger = logging.getLogger(__name__)
 
-hltv_client = HLTVClient()
-config = ConfigModel()
-
-
-def cs2_command_rule(commands: set[str]):
-    """自定义规则：匹配 /cs2xxx 命令，支持@机器人后跟命令"""
-    async def _rule(event: MessageEvent) -> bool:
-        msg = event.get_plaintext().strip()
-        for cmd in commands:
-            if msg.startswith(f"/{cmd}") or msg.startswith(cmd):
-                return True
-        return False
-    return Rule(_rule)
+# 获取配置并初始化客户端
+config = get_config()
+hltv_client = HLTVClient(api_url=config.hltv_api_url)
 
 
 # 命令定义 - priority=1 确保优先于 llmchat (priority=99)
@@ -38,9 +26,6 @@ matcher_cs2_team = on_command("cs2战队", aliases={"查询战队", "cs2队伍"}
 matcher_cs2_results = on_command("cs2结果", aliases={"查看结果", "cs2结果查询"}, priority=1, block=True)
 matcher_cs2_ranking = on_command("cs2排名", aliases={"战队排名", "csgo排名"}, priority=1, block=True)
 matcher_cs2_player = on_command("cs2选手", aliases={"查询选手", "cs2选手查询"}, priority=1, block=True)
-
-# 话题检测（无需@，被动检测）
-matcher_topic_detection = on_message(priority=50, block=False)
 
 
 @matcher_cs2_matches.handle()
@@ -175,39 +160,4 @@ async def handle_cs2_player(
         msg = result.get("message", f"无法获取 {player_name} 的选手信息")
 
     await matcher.finish(msg)
-
-
-@matcher_topic_detection.handle()
-async def handle_topic_detection(bot: Bot, event: MessageEvent):
-    """被动检测CS2相关话题"""
-    if not config.enable_topic_detection:
-        return
-
-    if not isinstance(event, MessageEvent):
-        return
-
-    message_text = event.get_plaintext().lower()
-
-    # CS2相关关键词
-    cs2_keywords = [
-        "cs2",
-        "csgo",
-        "反恐精英",
-        "hltv",
-        "major",
-        "比赛",
-        "战队",
-        "navi",
-        "faze",
-        "vitality",
-        "astralis",
-        "g2",
-        "spirit",
-    ]
-
-    # 检测关键词
-    detected_keywords = [kw for kw in cs2_keywords if kw in message_text]
-
-    if detected_keywords:
-        logger.info(f"检测到CS2话题: {detected_keywords}")
 

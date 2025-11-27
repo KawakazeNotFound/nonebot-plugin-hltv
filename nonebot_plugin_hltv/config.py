@@ -8,6 +8,9 @@ from pydantic import BaseModel
 class ConfigModel(BaseModel):
     """插件配置"""
 
+    # API Server 配置
+    hltv_api_url: str = ""  # API Server URL (如: https://your-app.vercel.app)
+
     # 缓存配置
     cache_duration_matches: int = 60  # 比赛数据缓存时间(秒)
     cache_duration_teams: int = 3600  # 战队排名缓存时间(秒)

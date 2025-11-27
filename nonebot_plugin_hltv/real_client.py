@@ -9,19 +9,65 @@ from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
 from datetime import datetime
 import cloudscraper
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
 
 class HLTVClient:
-    """HLTV数据客户端"""
+    """HLTV数据客户端 - 支持 API Server 和直接抓取两种模式"""
 
     BASE_URL = "https://www.hltv.org"
     
-    def __init__(self) -> None:
+    def __init__(self, api_url: str = "") -> None:
         self.logger = logging.getLogger(__name__)
-        self.scraper = cloudscraper.create_scraper()
-        self.logger.info("HLTV客户端初始化完成")
+        self.api_url = api_url.rstrip("/") if api_url else ""
+        self.scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'desktop': True
+            }
+        )
+        # 添加更多请求头模拟真实浏览器
+        self.scraper.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'max-age=0',
+            'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+        })
+        if self.api_url:
+            self.logger.info(f"HLTV客户端初始化完成 (API模式: {self.api_url})")
+        else:
+            self.logger.info("HLTV客户端初始化完成 (直接抓取模式)")
+
+    async def _api_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict]:
+        """通过 API Server 获取数据"""
+        if not self.api_url:
+            return None
+        
+        try:
+            url = f"{self.api_url}{endpoint}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        self.logger.info(f"API请求成功: {endpoint}")
+                        return data
+                    else:
+                        self.logger.warning(f"API请求失败 {endpoint}: HTTP {resp.status}")
+                        return None
+        except Exception as e:
+            self.logger.warning(f"API请求失败 {endpoint}: {e}")
+            return None
 
     async def _fetch(self, url: str) -> str:
         """异步获取URL内容（通过cloudscraper）"""
@@ -35,6 +81,12 @@ class HLTVClient:
 
     async def get_cs2_matches(self) -> Dict[str, Any]:
         """获取CS2比赛数据"""
+        # 优先使用 API Server
+        api_result = await self._api_request("/api/matches")
+        if api_result and api_result.get("success"):
+            return api_result
+        
+        # 回退到直接抓取
         try:
             url = f"{self.BASE_URL}/matches"
             self.logger.info(f"正在获取比赛数据: {url}")
@@ -118,6 +170,12 @@ class HLTVClient:
 
     async def get_team_rankings(self, limit: int = 30) -> Dict[str, Any]:
         """获取战队排名数据 - 使用正确的选择器从 .ranked-team 提取"""
+        # 优先使用 API Server
+        api_result = await self._api_request("/api/rankings", {"limit": limit})
+        if api_result and api_result.get("success"):
+            return api_result
+        
+        # 回退到直接抓取
         try:
             url = f"{self.BASE_URL}/ranking/teams"
             self.logger.info(f"正在获取战队排名: {url}")
@@ -187,6 +245,12 @@ class HLTVClient:
 
     async def get_match_results(self, days: int = 7) -> Dict[str, Any]:
         """获取比赛结果数据"""
+        # 优先使用 API Server
+        api_result = await self._api_request("/api/results", {"days": days})
+        if api_result and api_result.get("success"):
+            return api_result
+        
+        # 回退到直接抓取
         try:
             url = f"{self.BASE_URL}/results"
             self.logger.info(f"正在获取比赛结果: {url}")
@@ -265,6 +329,12 @@ class HLTVClient:
 
     async def get_player_info(self, player_name: str) -> Dict[str, Any]:
         """获取选手信息"""
+        # 优先使用 API Server
+        api_result = await self._api_request("/api/player", {"name": player_name})
+        if api_result and api_result.get("success"):
+            return api_result
+        
+        # 回退到直接抓取
         try:
             # 使用正确的搜索URL
             search_url = f"{self.BASE_URL}/search?query={player_name}"
@@ -388,6 +458,12 @@ class HLTVClient:
 
     async def get_team_info(self, team_name: str) -> Dict[str, Any]:
         """获取战队详细信息"""
+        # 优先使用 API Server
+        api_result = await self._api_request("/api/team", {"name": team_name})
+        if api_result and api_result.get("success"):
+            return api_result
+        
+        # 回退到直接抓取
         try:
             # 使用正确的搜索URL
             search_url = f"{self.BASE_URL}/search?query={team_name}"

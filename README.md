@@ -79,6 +79,16 @@ _✨ CS2/CSGO HLTV 信息查询插件 ✨_
 
 在 nonebot2 项目的 `.env` 文件中添加以下配置（均为可选）：
 
+### API Server 配置（推荐）
+
+如果你的服务器 IP 被 HLTV 屏蔽（返回 403 错误），可以部署 API Server 来解决：
+
+| 配置项 | 默认值 | 说明 |
+|:------|:------:|:-----|
+| `hltv_api_url` | `""` | API Server 地址，如 `https://your-app.vercel.app` |
+
+> 💡 **提示**: 如果不配置 `hltv_api_url`，插件会直接访问 HLTV。如果遇到 403 错误，请参考下方的 [API Server 部署](#-api-server-部署) 章节。
+
 ### 缓存配置
 
 | 配置项 | 默认值 | 说明 |
@@ -149,11 +159,66 @@ _✨ CS2/CSGO HLTV 信息查询插件 ✨_
 
 ## 📝 更新日志
 
+### v3.1.0
+- 新增 API Server 支持，解决服务器 IP 被屏蔽问题
+- 配置项 `hltv_api_url` 用于指定 API Server 地址
+
 ### v1.0.0
 - 首次发布
 - 支持查询实时比赛、战队排名、比赛结果
 - 支持查询选手和战队详细信息
 - 使用 cloudscraper 获取真实 HLTV 数据
+
+## 🌐 API Server 部署
+
+如果你的服务器 IP 被 HLTV/Cloudflare 屏蔽，可以部署一个 API Server 作为代理。
+
+### Vercel 部署
+
+1. 在你的项目中创建 `api-server/` 目录
+
+2. 创建 `api-server/vercel.json`：
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ]
+}
+```
+
+3. 创建 `api-server/requirements.txt`：
+```
+cloudscraper>=1.2.71
+beautifulsoup4>=4.12.0
+flask>=3.0.0
+```
+
+4. 创建 `api-server/api/index.py`（完整代码见项目的 `api-server/` 目录）
+
+5. 部署到 Vercel：
+```bash
+cd api-server
+npx vercel --prod
+```
+
+6. 配置 `.env`：
+```
+hltv_api_url=https://your-app.vercel.app
+```
+
+### Cloudflare Workers 部署
+
+参考项目中的 `api-server/cloudflare-worker.js` 文件。
 
 ## 📄 许可证
 
