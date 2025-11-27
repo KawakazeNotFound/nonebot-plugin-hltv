@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import re
 from typing import Optional
 
 from nonebot import on_command, on_message
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
+from nonebot.rule import to_me
 
 from .real_client import HLTVClient
 from .config import ConfigModel
@@ -15,21 +17,28 @@ from .config import ConfigModel
 logger = logging.getLogger(__name__)
 
 hltv_client = HLTVClient()
-# 使用默认配置
 config = ConfigModel()
 
-# 命令定义
-matcher_cs2_matches = on_command("cs2比赛", aliases={"cs2匹配", "查看cs2比赛"}, priority=5)
-matcher_cs2_team = on_command("cs2战队", aliases={"查询战队", "cs2队伍"}, priority=5)
-matcher_cs2_results = on_command("cs2结果", aliases={"查看结果", "cs2结果查询"}, priority=5)
-matcher_cs2_ranking = on_command("cs2排名", aliases={"战队排名", "csgo排名"}, priority=5)
-matcher_cs2_player = on_command("cs2选手", aliases={"查询选手", "cs2选手查询"}, priority=5)
+# 命令定义 - 使用 to_me() 规则，支持 @机器人 触发
+matcher_cs2_matches = on_command("cs2比赛", aliases={"cs2匹配", "查看cs2比赛"}, rule=to_me(), priority=1, block=True)
+matcher_cs2_team = on_command("cs2战队", aliases={"查询战队", "cs2队伍"}, rule=to_me(), priority=1, block=True)
+matcher_cs2_results = on_command("cs2结果", aliases={"查看结果", "cs2结果查询"}, rule=to_me(), priority=1, block=True)
+matcher_cs2_ranking = on_command("cs2排名", aliases={"战队排名", "csgo排名"}, rule=to_me(), priority=1, block=True)
+matcher_cs2_player = on_command("cs2选手", aliases={"查询选手", "cs2选手查询"}, rule=to_me(), priority=1, block=True)
+
+# 同时也支持不@直接使用命令
+matcher_cs2_matches_no_at = on_command("cs2比赛", aliases={"cs2匹配", "查看cs2比赛"}, priority=2, block=True)
+matcher_cs2_team_no_at = on_command("cs2战队", aliases={"查询战队", "cs2队伍"}, priority=2, block=True)
+matcher_cs2_results_no_at = on_command("cs2结果", aliases={"查看结果", "cs2结果查询"}, priority=2, block=True)
+matcher_cs2_ranking_no_at = on_command("cs2排名", aliases={"战队排名", "csgo排名"}, priority=2, block=True)
+matcher_cs2_player_no_at = on_command("cs2选手", aliases={"查询选手", "cs2选手查询"}, priority=2, block=True)
 
 # 话题检测（无需@，被动检测）
 matcher_topic_detection = on_message(priority=50, block=False)
 
 
 @matcher_cs2_matches.handle()
+@matcher_cs2_matches_no_at.handle()
 async def handle_cs2_matches(bot: Bot, event: MessageEvent, matcher: Matcher):
     """处理CS2比赛查询"""
     result = await hltv_client.get_cs2_matches()
@@ -57,10 +66,10 @@ async def handle_cs2_matches(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 
 @matcher_cs2_team.handle()
+@matcher_cs2_team_no_at.handle()
 async def handle_cs2_team(
     bot: Bot, event: MessageEvent, matcher: Matcher, args: str = CommandArg()
 ):
-    """处理战队信息查询"""
     team_name = args.extract_plain_text().strip()
 
     if not team_name:
@@ -87,8 +96,8 @@ async def handle_cs2_team(
 
 
 @matcher_cs2_results.handle()
+@matcher_cs2_results_no_at.handle()
 async def handle_cs2_results(bot: Bot, event: MessageEvent, matcher: Matcher):
-    """处理比赛结果查询"""
     result = await hltv_client.get_match_results(days=7)
 
     if result.get("success"):
@@ -114,8 +123,8 @@ async def handle_cs2_results(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 
 @matcher_cs2_ranking.handle()
+@matcher_cs2_ranking_no_at.handle()
 async def handle_cs2_ranking(bot: Bot, event: MessageEvent, matcher: Matcher):
-    """处理战队排名查询"""
     result = await hltv_client.get_team_rankings(limit=10)
 
     if result.get("success"):
@@ -136,10 +145,10 @@ async def handle_cs2_ranking(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 
 @matcher_cs2_player.handle()
+@matcher_cs2_player_no_at.handle()
 async def handle_cs2_player(
     bot: Bot, event: MessageEvent, matcher: Matcher, args: str = CommandArg()
 ):
-    """处理选手信息查询"""
     player_name = args.extract_plain_text().strip()
 
     if not player_name:
