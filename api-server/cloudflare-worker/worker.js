@@ -49,8 +49,8 @@ export default {
             "/api/matches",
             "/api/rankings?limit=30",
             "/api/results",
-            "/api/player?name=ZywOo",
-            "/api/team?name=Vitality",
+            "/api/player?name=device",
+            "/api/team?name=Tyloo",
             "/api/proxy?path=/matches"
           ]
         });
