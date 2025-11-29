@@ -37,7 +37,8 @@ async def handle_cs2_matches(bot: Bot, event: MessageEvent, matcher: Matcher):
         matches = result.get("data", [])
         if matches:
             msg = "【CS2实时比赛】\n"
-            for i, match in enumerate(matches[:8], 1):
+            limit = config.max_matches_per_query
+            for i, match in enumerate(matches[:limit], 1):
                 team1 = match.get("team1", "TBD")
                 team2 = match.get("team2", "TBD")
                 match_event = match.get("event", "Unknown")
@@ -86,13 +87,15 @@ async def handle_cs2_team(
 
 @matcher_cs2_results.handle()
 async def handle_cs2_results(bot: Bot, event: MessageEvent, matcher: Matcher):
-    result = await hltv_client.get_match_results(days=7)
+    days = config.default_query_days
+    result = await hltv_client.get_match_results(days=days)
 
     if result.get("success"):
         matches = result.get("data", [])
         if matches:
             msg = f"【最近比赛结果】\n"
-            for i, match in enumerate(matches[:5], 1):
+            limit = config.max_results_per_query
+            for i, match in enumerate(matches[:limit], 1):
                 team1 = match.get("team1", "TBD")
                 team2 = match.get("team2", "TBD")
                 score1 = match.get("score1", 0)
@@ -112,13 +115,14 @@ async def handle_cs2_results(bot: Bot, event: MessageEvent, matcher: Matcher):
 
 @matcher_cs2_ranking.handle()
 async def handle_cs2_ranking(bot: Bot, event: MessageEvent, matcher: Matcher):
-    result = await hltv_client.get_team_rankings(limit=10)
+    limit = config.max_teams_in_ranking
+    result = await hltv_client.get_team_rankings(limit=limit)
 
     if result.get("success"):
         teams = result.get("data", [])
         if teams:
-            msg = f"【CS2战队排名 Top 10】\n"
-            for team in teams[:10]:
+            msg = f"【CS2战队排名 Top {limit}】\n"
+            for team in teams[:limit]:
                 rank = team.get("rank", "N/A")
                 name = team.get("title", "Unknown")
                 points = team.get("points", "N/A")
@@ -147,14 +151,35 @@ async def handle_cs2_player(
         player_data = result.get("data", {})
         msg = f"【{player_data.get('full_name', player_name)} 选手信息】\n"
         msg += f"ID: {player_data.get('name', player_name)}\n"
-        msg += f"战队: {player_data.get('team', 'N/A')}\n"
-        msg += f"国籍: {player_data.get('country', 'N/A')}\n"
-        if player_data.get('rating') and player_data['rating'] != 'N/A':
-            msg += f"Rating 2.0: {player_data.get('rating', 'N/A')}\n"
-        if player_data.get('kpr') and player_data['kpr'] != 'N/A':
-            msg += f"KPR: {player_data.get('kpr', 'N/A')}\n"
-        if player_data.get('adr') and player_data['adr'] != 'N/A':
-            msg += f"ADR: {player_data.get('adr', 'N/A')}\n"
+        
+        team = player_data.get('team', 'N/A')
+        msg += f"战队: {team}\n"
+        
+        country = player_data.get('country', 'N/A')
+        if country and country != 'N/A':
+            msg += f"国籍: {country}\n"
+        
+        # 显示 Rating (3.0)
+        rating = player_data.get('rating')
+        if rating and rating != 'N/A':
+            msg += f"Rating: {rating}\n"
+        
+        kpr = player_data.get('kpr')
+        if kpr and kpr != 'N/A':
+            msg += f"KPR: {kpr}\n"
+        
+        adr = player_data.get('adr')
+        if adr and adr != 'N/A':
+            msg += f"ADR: {adr}\n"
+        
+        kast = player_data.get('kast')
+        if kast and kast != 'N/A':
+            msg += f"KAST: {kast}\n"
+        
+        headshot = player_data.get('headshot_pct')
+        if headshot and headshot != 'N/A':
+            msg += f"爆头率: {headshot}\n"
+        
         msg += f"详情: {player_data.get('url', 'N/A')}\n"
     else:
         msg = result.get("message", f"无法获取 {player_name} 的选手信息")

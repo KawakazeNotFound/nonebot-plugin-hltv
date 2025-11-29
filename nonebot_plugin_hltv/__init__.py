@@ -6,6 +6,16 @@ from nonebot.plugin import PluginMetadata
 from .config import ConfigModel
 from . import matcher  # 导入 matcher 以注册命令
 
+# 尝试加载 WebUI
+try:
+    from . import web_ui
+    web_ui.init_web_ui()
+except ImportError:
+    pass
+except Exception as e:
+    from nonebot.log import logger
+    logger.warning(f"HLTV WebUI 加载失败: {e}")
+
 __plugin_meta__ = PluginMetadata(
     name="CS2/CSGO HLTV 信息查询",
     description="提供CS2/CSGO比赛数据、战队信息、选手数据查询功能。",

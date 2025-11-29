@@ -363,15 +363,17 @@ async function handlePlayer(name) {
     const playerPath = playerMatch[1];
     const playerHtml = await fetchHLTV(playerPath);
     
-    // 解析选手信息
-    const fullNameMatch = playerHtml.match(/<div[^>]*class="[^"]*playerRealname[^"]*"[^>]*>([^<]+)<\/div>/i);
+    // 解析选手信息 - 结构: <div class="playerRealname"...><img...> Mathieu Herbaut</div>
+    // 名字在 <img> 标签之后
+    const fullNameMatch = playerHtml.match(/<div[^>]*class="[^"]*playerRealname[^"]*"[^>]*>(?:<img[^>]*>)?\s*([^<]+)<\/div>/i);
     const fullName = fullNameMatch ? fullNameMatch[1].trim() : name;
     
-    const teamMatch = playerHtml.match(/<a[^>]*class="[^"]*a-reset[^"]*"[^>]*href="\/team\/[^"]*"[^>]*>([^<]+)<\/a>/i);
+    // 提取战队名 - 从 team 链接: <a href="/team/..." itemprop="text">Vitality</a>
+    const teamMatch = playerHtml.match(/<a[^>]*href="\/team\/\d+\/[^"]*"[^>]*itemprop="text"[^>]*>([^<]+)<\/a>/i);
     const team = teamMatch ? teamMatch[1].trim() : "Unknown";
     
-    // Rating
-    const ratingMatch = playerHtml.match(/<span[^>]*class="[^"]*statsVal[^"]*"[^>]*>([0-9.]+)<\/span>/i);
+    // 提取 Rating 3.0 - 结构: <div class="player-stat"><b>Rating 3.0</b><span class="statsVal">\n<p>1.27</p>
+    const ratingMatch = playerHtml.match(/<b>Rating 3\.0<\/b><span[^>]*class="[^"]*statsVal[^"]*"[^>]*>\s*<p>([0-9.]+)<\/p>/i);
     const rating = ratingMatch ? ratingMatch[1] : "N/A";
     
     // 获取统计页面
