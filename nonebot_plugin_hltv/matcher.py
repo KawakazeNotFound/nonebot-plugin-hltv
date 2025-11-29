@@ -26,6 +26,7 @@ matcher_cs2_team = on_command("cs2战队", aliases={"查询战队", "cs2队伍"}
 matcher_cs2_results = on_command("cs2结果", aliases={"查看结果", "cs2结果查询"}, priority=1, block=True)
 matcher_cs2_ranking = on_command("cs2排名", aliases={"战队排名", "csgo排名"}, priority=1, block=True)
 matcher_cs2_player = on_command("cs2选手", aliases={"查询选手", "cs2选手查询"}, priority=1, block=True)
+matcher_cs2_events = on_command("cs2赛事", aliases={"cs2比赛赛程", "重要赛事"}, priority=1, block=True)
 
 
 @matcher_cs2_matches.handle()
@@ -183,6 +184,39 @@ async def handle_cs2_player(
         msg += f"详情: {player_data.get('url', 'N/A')}\n"
     else:
         msg = result.get("message", f"无法获取 {player_name} 的选手信息")
+
+    await matcher.finish(msg)
+
+
+@matcher_cs2_events.handle()
+async def handle_cs2_events(bot: Bot, event: MessageEvent, matcher: Matcher):
+    """处理CS2赛事查询"""
+    result = await hltv_client.get_events()
+
+    if result.get("success"):
+        events = result.get("data", [])
+        if events:
+            msg = "【CS2重要赛事】\n"
+            # 只显示前10个赛事
+            limit = 10
+            for i, evt in enumerate(events[:limit], 1):
+                name = evt.get("name", "Unknown")
+                tier = evt.get("tier", "?")
+                tier_name = evt.get("tier_name", "")
+                location = evt.get("location", "TBD")
+                start_date = evt.get("start_date", "TBD")
+                end_date = evt.get("end_date", "TBD")
+                
+                msg += f"{i}. [{tier}级] {name}\n"
+                msg += f"   📍 {location}\n"
+                msg += f"   📅 {start_date} ~ {end_date}\n"
+            
+            if len(events) > limit:
+                msg += f"\n...还有 {len(events) - limit} 场赛事"
+        else:
+            msg = "当前没有找到重要赛事信息。\n"
+    else:
+        msg = result.get("message", "获取赛事信息失败")
 
     await matcher.finish(msg)
 

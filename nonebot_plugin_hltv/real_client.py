@@ -69,3 +69,7 @@ class HLTVClient:
     async def get_team_info(self, team_name: str) -> Dict[str, Any]:
         """获取战队详细信息"""
         return await self._api_request("/api/team", {"name": team_name})
+
+    async def get_events(self) -> Dict[str, Any]:
+        """获取重要赛事 (S级 Major + A级 国际LAN)"""
+        return await self._api_request("/api/events")
