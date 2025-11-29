@@ -3,12 +3,19 @@
 
 import logging
 import re
+import os
+from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
-from nonebot import on_command
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message
+from nonebot import on_command, require
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, Message, MessageSegment
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
+
+# 导入 htmlrender
+require("nonebot_plugin_htmlrender")
+from nonebot_plugin_htmlrender import template_to_pic
 
 from .config import get_config
 from .real_client import HLTVClient
@@ -87,31 +94,78 @@ async def handle_cs2_team(
 
 
 @matcher_cs2_results.handle()
-async def handle_cs2_results(bot: Bot, event: MessageEvent, matcher: Matcher):
+async def handle_cs2_results(
+    bot: Bot, event: MessageEvent, matcher: Matcher, args: Message = CommandArg()
+):
+    """处理CS2比赛结果查询
+    
+    用法:
+        /cs2结果      - 查看所有赛事结果
+        /cs2结果 S    - 只看S级(5星)赛事
+        /cs2结果 A    - 只看A级(4星)及以上
+        /cs2结果 B    - 只看B级(3星)及以上
+    """
+    arg_text = args.extract_plain_text().strip().upper()
+    
+    # 解析级别参数
+    tier_map = {
+        "S": 5,  # S级 = 5星
+        "A": 4,  # A级 = 4星及以上
+        "B": 3,  # B级 = 3星及以上
+        "C": 1,  # C级 = 1星及以上
+    }
+    
+    stars = tier_map.get(arg_text, 0)  # 默认0表示全部
+    
+    filter_text = ""
+    if arg_text in tier_map:
+        filter_text = f"筛选: {arg_text}级及以上赛事 ({stars}星+)"
+    
     days = config.default_query_days
-    result = await hltv_client.get_match_results(days=days)
+    result = await hltv_client.get_match_results(days=days, stars=stars)
 
     if result.get("success"):
         matches = result.get("data", [])
         if matches:
-            msg = f"【最近比赛结果】\n"
-            limit = config.max_results_per_query
-            for i, match in enumerate(matches[:limit], 1):
-                team1 = match.get("team1", "TBD")
-                team2 = match.get("team2", "TBD")
-                score1 = match.get("score1", 0)
-                score2 = match.get("score2", 0)
-                event = match.get("event", "Unknown")
+            # 使用 HTML 渲染
+            template_path = Path(__file__).parent / "templates"
+            
+            try:
+                pic = await template_to_pic(
+                    template_path=str(template_path),
+                    template_name="results.html",
+                    templates={
+                        "results": matches[:20],  # 最多显示20条
+                        "filter_text": filter_text,
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    },
+                    pages={
+                        "viewport": {"width": 800, "height": 100},
+                    },
+                )
+                await matcher.finish(MessageSegment.image(pic))
+            except Exception as e:
+                logger.error(f"渲染图片失败: {e}")
+                # 降级为文本输出
+                msg = f"【最近比赛结果】{' (' + filter_text + ')' if filter_text else ''}\n"
+                limit = config.max_results_per_query
+                for i, match in enumerate(matches[:limit], 1):
+                    team1 = match.get("team1", "TBD")
+                    team2 = match.get("team2", "TBD")
+                    score1 = match.get("score1", 0)
+                    score2 = match.get("score2", 0)
+                    evt = match.get("event", "Unknown")
+                    star_count = match.get("stars", 0)
 
-                winner = team1 if int(score1) > int(score2) else team2
-                msg += f"{i}. {team1} {score1}-{score2} {team2}\n"
-                msg += f"   胜者: {winner} | 赛事: {event}\n"
+                    winner = team1 if int(score1) > int(score2) else team2
+                    msg += f"{i}. {team1} {score1}-{score2} {team2} {'★' * star_count}\n"
+                    msg += f"   胜者: {winner} | 赛事: {evt}\n"
+                await matcher.finish(msg)
         else:
-            msg = "当前没有找到比赛结果。\n"
+            await matcher.finish("当前没有找到比赛结果。\n")
     else:
         msg = result.get("message", "获取比赛结果失败")
-
-    await matcher.finish(msg)
+        await matcher.finish(msg)
 
 
 @matcher_cs2_ranking.handle()

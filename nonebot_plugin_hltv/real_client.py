@@ -58,9 +58,17 @@ class HLTVClient:
         """获取战队排名数据"""
         return await self._api_request("/api/rankings", {"limit": limit})
 
-    async def get_match_results(self, days: int = 7) -> Dict[str, Any]:
-        """获取比赛结果数据"""
-        return await self._api_request("/api/results", {"days": days})
+    async def get_match_results(self, days: int = 7, stars: int = 0) -> Dict[str, Any]:
+        """获取比赛结果数据
+        
+        Args:
+            days: 天数（暂未使用）
+            stars: 最低星级 (0=全部, 3=B级及以上, 4=A级及以上, 5=S级)
+        """
+        params = {"days": days}
+        if stars > 0:
+            params["stars"] = stars
+        return await self._api_request("/api/results", params)
 
     async def get_player_info(self, player_name: str) -> Dict[str, Any]:
         """获取选手信息"""

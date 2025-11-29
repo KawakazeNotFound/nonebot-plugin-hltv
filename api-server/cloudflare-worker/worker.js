@@ -67,7 +67,8 @@ export default {
       }
 
       if (path === "/api/results") {
-        return await handleResults();
+        const stars = parseInt(url.searchParams.get("stars") || "0");
+        return await handleResults(stars);
       }
 
       if (path === "/api/events") {
@@ -272,9 +273,11 @@ async function handleRankings(limit = 30) {
   }
 }
 
-async function handleResults() {
+async function handleResults(minStars = 0) {
   try {
-    const html = await fetchHLTV("/results");
+    // 如果指定了星级，使用 HLTV 的 stars 参数过滤
+    const path = minStars > 0 ? `/results?stars=${minStars}` : "/results";
+    const html = await fetchHLTV(path);
     
     const results = [];
     
@@ -282,8 +285,15 @@ async function handleResults() {
     const resultPattern = /<div[^>]*class="[^"]*result-con[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
     const resultBlocks = html.match(resultPattern) || [];
     
-    for (const block of resultBlocks.slice(0, 20)) {
+    for (const block of resultBlocks.slice(0, 30)) {
       try {
+        // 提取星级
+        const starsMatch = block.match(/<div[^>]*class="[^"]*stars[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+        let stars = 0;
+        if (starsMatch) {
+          stars = (starsMatch[1].match(/fa-star/g) || []).length;
+        }
+        
         // 提取队伍
         const teamPattern = /<div[^>]*class="[^"]*team[^"]*"[^>]*>([^<]+)<\/div>/gi;
         const teams = [];
@@ -335,7 +345,8 @@ async function handleResults() {
             team2: teams[1],
             score1: score1,
             score2: score2,
-            event: event
+            event: event,
+            stars: stars
           });
         }
       } catch (e) {
@@ -343,9 +354,10 @@ async function handleResults() {
       }
     }
     
+    const starFilter = minStars > 0 ? ` (${minStars}星及以上)` : "";
     return jsonResponse({
       success: true,
-      message: `成功获取 ${results.length} 场比赛结果`,
+      message: `成功获取 ${results.length} 场比赛结果${starFilter}`,
       data: results,
       source: "hltv-cf-worker"
     });
