@@ -279,7 +279,7 @@ async function handleResults() {
     
     for (const block of resultBlocks.slice(0, 20)) {
       try {
-        // 提取队伍和比分
+        // 提取队伍
         const teamPattern = /<div[^>]*class="[^"]*team[^"]*"[^>]*>([^<]+)<\/div>/gi;
         const teams = [];
         let teamMatch;
@@ -290,10 +290,35 @@ async function handleResults() {
           }
         }
         
-        // 比分
-        const scoreMatch = block.match(/(\d+)\s*-\s*(\d+)/);
-        const score1 = scoreMatch ? parseInt(scoreMatch[1]) : 0;
-        const score2 = scoreMatch ? parseInt(scoreMatch[2]) : 0;
+        // 比分 - 格式: <span class="score-won">13</span> - <span class="score-lost">7</span>
+        // 或者: <td class="result-score">..scores..</td>
+        let score1 = 0, score2 = 0;
+        
+        // 方法1: 匹配 score-won 和 score-lost
+        const scoreWonMatch = block.match(/<span[^>]*class="[^"]*score-won[^"]*"[^>]*>(\d+)<\/span>/i);
+        const scoreLostMatch = block.match(/<span[^>]*class="[^"]*score-lost[^"]*"[^>]*>(\d+)<\/span>/i);
+        
+        if (scoreWonMatch && scoreLostMatch) {
+          // 需要判断哪个队伍赢了
+          // 在 result-score 中，第一个 span 是左边队伍的分数
+          const scoreSection = block.match(/<td[^>]*class="[^"]*result-score[^"]*"[^>]*>([\s\S]*?)<\/td>/i);
+          if (scoreSection) {
+            const scores = scoreSection[1].match(/>(\d+)</g);
+            if (scores && scores.length >= 2) {
+              score1 = parseInt(scores[0].replace(/[><]/g, ''));
+              score2 = parseInt(scores[1].replace(/[><]/g, ''));
+            }
+          }
+        }
+        
+        // 方法2: 如果上面失败，尝试简单的数字匹配
+        if (score1 === 0 && score2 === 0) {
+          const simpleScoreMatch = block.match(/>(\d+)<\/span>\s*-\s*<span[^>]*>(\d+)</i);
+          if (simpleScoreMatch) {
+            score1 = parseInt(simpleScoreMatch[1]);
+            score2 = parseInt(simpleScoreMatch[2]);
+          }
+        }
         
         // 赛事
         const eventMatch = block.match(/<span[^>]*class="[^"]*event-name[^"]*"[^>]*>([^<]+)<\/span>/i);
