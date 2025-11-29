@@ -49,6 +49,7 @@ export default {
             "/api/matches",
             "/api/rankings?limit=30",
             "/api/results",
+            "/api/events",
             "/api/player?name=device",
             "/api/team?name=Tyloo",
             "/api/proxy?path=/matches"
@@ -67,6 +68,10 @@ export default {
 
       if (path === "/api/results") {
         return await handleResults();
+      }
+
+      if (path === "/api/events") {
+        return await handleEvents();
       }
 
       if (path === "/api/player") {
@@ -412,6 +417,116 @@ async function handlePlayer(name) {
         kast: stats.kast || "N/A",
         url: `${BASE_URL}${playerPath}`
       },
+      source: "hltv-cf-worker"
+    });
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.message }, 500);
+  }
+}
+
+// 赛事级别定义
+const EVENT_TIERS = {
+  MAJOR: { tier: "S", name: "Major" },
+  INTLLAN: { tier: "A", name: "国际LAN" },
+  // 以下级别不再获取
+  // REGIONALLAN: { tier: "B", name: "地区LAN" },
+  // LOCALLAN: { tier: "C", name: "本地LAN" },
+  // ONLINE: { tier: "C", name: "线上赛" },
+  // OTHER: { tier: "D", name: "其他" },
+};
+
+async function handleEvents() {
+  try {
+    const events = [];
+    
+    // 只获取 S 和 A 级别赛事 (MAJOR 和 INTLLAN)
+    for (const [eventType, tierInfo] of Object.entries(EVENT_TIERS)) {
+      try {
+        const html = await fetchHLTV(`/events?eventType=${eventType}`);
+        
+        // 解析大型赛事 (big-event) - 结构: <a href="/events/xxx" class="... big-event ...">内容</a>
+        const bigEventPattern = /<a[^>]*href="(\/events\/\d+\/[^"]+)"[^>]*class="[^"]*big-event[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        
+        while ((match = bigEventPattern.exec(html)) !== null) {
+          const eventUrl = match[1];
+          const eventBlock = match[2];
+          
+          // 提取赛事名称
+          const nameMatch = eventBlock.match(/<div[^>]*class="[^"]*big-event-name[^"]*"[^>]*>([^<]+)<\/div>/i);
+          const name = nameMatch ? nameMatch[1].trim() : "Unknown";
+          
+          // 提取地点
+          const locationMatch = eventBlock.match(/<span[^>]*class="[^"]*big-event-location[^"]*"[^>]*>([^<]+)<\/span>/i);
+          const location = locationMatch ? locationMatch[1].trim() : "TBD";
+          
+          // 提取日期
+          const dateMatches = eventBlock.match(/data-unix="(\d+)"/g);
+          let startDate = null, endDate = null;
+          if (dateMatches && dateMatches.length >= 2) {
+            startDate = parseInt(dateMatches[0].match(/\d+/)[0]);
+            endDate = parseInt(dateMatches[1].match(/\d+/)[0]);
+          }
+          
+          events.push({
+            name: name,
+            tier: tierInfo.tier,
+            tier_name: tierInfo.name,
+            event_type: eventType,
+            location: location,
+            start_date: startDate ? new Date(startDate).toISOString().split('T')[0] : null,
+            end_date: endDate ? new Date(endDate).toISOString().split('T')[0] : null,
+            url: `${BASE_URL}${eventUrl}`
+          });
+        }
+        
+        // 解析小型赛事 (small-event) - 结构: <a href="/events/xxx" class="... small-event ...">内容</a>
+        const smallEventPattern = /<a[^>]*href="(\/events\/\d+\/[^"]+)"[^>]*class="[^"]*small-event[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+        
+        while ((match = smallEventPattern.exec(html)) !== null) {
+          const eventUrl = match[1];
+          const eventBlock = match[2];
+          
+          // 提取赛事名称 - <div class="table-cell name">xxx</div>
+          const nameMatch = eventBlock.match(/<div[^>]*class="[^"]*\bname\b[^"]*"[^>]*>([^<]+)<\/div>/i);
+          const name = nameMatch ? nameMatch[1].trim() : "Unknown";
+          
+          // 提取日期
+          const dateMatches = eventBlock.match(/data-unix="(\d+)"/g);
+          let startDate = null, endDate = null;
+          if (dateMatches && dateMatches.length >= 2) {
+            startDate = parseInt(dateMatches[0].match(/\d+/)[0]);
+            endDate = parseInt(dateMatches[1].match(/\d+/)[0]);
+          }
+          
+          events.push({
+            name: name,
+            tier: tierInfo.tier,
+            tier_name: tierInfo.name,
+            event_type: eventType,
+            location: "TBD",
+            start_date: startDate ? new Date(startDate).toISOString().split('T')[0] : null,
+            end_date: endDate ? new Date(endDate).toISOString().split('T')[0] : null,
+            url: `${BASE_URL}${eventUrl}`
+          });
+        }
+      } catch (e) {
+        // 某个类型获取失败，继续下一个
+        continue;
+      }
+    }
+    
+    // 按开始日期排序（最近的在前）
+    events.sort((a, b) => {
+      if (!a.start_date) return 1;
+      if (!b.start_date) return -1;
+      return new Date(a.start_date) - new Date(b.start_date);
+    });
+    
+    return jsonResponse({
+      success: true,
+      message: `成功获取 ${events.length} 场重要赛事 (S级: Major, A级: 国际LAN)`,
+      data: events,
       source: "hltv-cf-worker"
     });
   } catch (error) {
